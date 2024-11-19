@@ -45,16 +45,16 @@ int nvme_query_zone_info(struct nvme_ns *ns, unsigned lbaf,
 
 	/* Driver requires zone append support */
 	if ((le32_to_cpu(log->iocs[nvme_cmd_zone_append]) &
-			NVME_CMD_EFFECTS_CSUPP)) {
+				NVME_CMD_EFFECTS_CSUPP)) {
 		if (test_and_clear_bit(NVME_NS_FORCE_RO, &ns->flags))
 			dev_warn(ns->ctrl->device,
-				 "Zone Append supported for zoned namespace:%d. Remove read-only mode\n",
-				 ns->head->ns_id);
+					"Zone Append supported for zoned namespace:%d. Remove read-only mode\n",
+					ns->head->ns_id);
 	} else {
 		set_bit(NVME_NS_FORCE_RO, &ns->flags);
 		dev_warn(ns->ctrl->device,
-			 "Zone Append not supported for zoned namespace:%d. Forcing to read-only mode\n",
-			 ns->head->ns_id);
+				"Zone Append not supported for zoned namespace:%d. Forcing to read-only mode\n",
+				ns->head->ns_id);
 	}
 
 	/* Lazily query controller append limit for the first zoned namespace */
@@ -83,8 +83,8 @@ int nvme_query_zone_info(struct nvme_ns *ns, unsigned lbaf,
 	 */
 	if (id->zoc) {
 		dev_warn(ns->ctrl->device,
-			"zone operations:%x not supported for namespace:%u\n",
-			le16_to_cpu(id->zoc), ns->head->ns_id);
+				"zone operations:%x not supported for namespace:%u\n",
+				le16_to_cpu(id->zoc), ns->head->ns_id);
 		status = -ENODEV;
 		goto free_data;
 	}
@@ -92,8 +92,8 @@ int nvme_query_zone_info(struct nvme_ns *ns, unsigned lbaf,
 	zi->zone_size = le64_to_cpu(id->lbafe[lbaf].zsze);
 	if (!is_power_of_2(zi->zone_size)) {
 		dev_warn(ns->ctrl->device,
-			"invalid zone size: %llu for namespace: %u\n",
-			zi->zone_size, ns->head->ns_id);
+				"invalid zone size: %llu for namespace: %u\n",
+				zi->zone_size, ns->head->ns_id);
 		status = -ENODEV;
 		goto free_data;
 	}
@@ -118,17 +118,17 @@ void nvme_update_zone_info(struct nvme_ns *ns, struct queue_limits *lim,
 }
 
 static void *nvme_zns_alloc_report_buffer(struct nvme_ns *ns,
-					  unsigned int nr_zones, size_t *buflen)
+		unsigned int nr_zones, size_t *buflen)
 {
 	struct request_queue *q = ns->disk->queue;
 	size_t bufsize;
 	void *buf;
 
 	const size_t min_bufsize = sizeof(struct nvme_zone_report) +
-				   sizeof(struct nvme_zone_descriptor);
+		sizeof(struct nvme_zone_descriptor);
 
 	nr_zones = min_t(unsigned int, nr_zones,
-			 get_capacity(ns->disk) >> ilog2(ns->head->zsze));
+			get_capacity(ns->disk) >> ilog2(ns->head->zsze));
 
 	bufsize = sizeof(struct nvme_zone_report) +
 		nr_zones * sizeof(struct nvme_zone_descriptor);
@@ -148,20 +148,33 @@ static void *nvme_zns_alloc_report_buffer(struct nvme_ns *ns,
 }
 
 static int nvme_zone_parse_entry(struct nvme_ctrl *ctrl,
-				 struct nvme_ns_head *head,
-				 struct nvme_zone_descriptor *entry,
-				 unsigned int idx, report_zones_cb cb,
-				 void *data)
+		struct nvme_ns_head *head,
+		struct nvme_zone_descriptor *entry,
+		unsigned int idx, report_zones_cb cb,
+		void *data)
 {
 	struct blk_zone zone = { };
 
-	if ((entry->zt & 0xf) != NVME_ZONE_TYPE_SEQWRITE_REQ) {
-		dev_err(ctrl->device, "invalid zone type %#x\n",
-				entry->zt);
+	/*
+	   if ((entry->zt & 0xf) != NVME_ZONE_TYPE_SEQWRITE_REQ) {
+	   dev_err(ctrl->device, "invalid zone type %#x\n",
+	   entry->zt);
+	   return -EINVAL;
+	   }
+	   */
+	if ((((entry->zt & 0xf) != NVME_ZONE_TYPE_SEQWRITE_REQ)&&((entry->zt & 0xf) != NVME_ZONE_TYPE_CONVENTIONAL))){
 		return -EINVAL;
 	}
 
-	zone.type = BLK_ZONE_TYPE_SEQWRITE_REQ;
+	//zone.type = BLK_ZONE_TYPE_SEQWRITE_REQ;
+
+	if((entry->zt & 0xf) == NVME_ZONE_TYPE_CONVENTIONAL){
+		zone.type = BLK_ZONE_TYPE_CONVENTIONAL;
+		dev_err(ctrl->device, "[inho] conv to zidx %x\n",idx);
+	}
+	else {
+		zone.type = BLK_ZONE_TYPE_SEQWRITE_REQ;
+	}
 	zone.cond = entry->zs >> 4;
 	zone.len = head->zsze;
 	zone.capacity = nvme_lba_to_sect(head, le64_to_cpu(entry->zcap));
@@ -215,8 +228,8 @@ int nvme_ns_report_zones(struct nvme_ns *ns, sector_t sector,
 
 		for (i = 0; i < nz && zone_idx < nr_zones; i++) {
 			ret = nvme_zone_parse_entry(ns->ctrl, ns->head,
-						    &report->entries[i],
-						    zone_idx, cb, data);
+					&report->entries[i],
+					zone_idx, cb, data);
 			if (ret)
 				goto out_free;
 			zone_idx++;

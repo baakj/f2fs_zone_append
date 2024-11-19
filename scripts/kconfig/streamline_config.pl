@@ -633,19 +633,20 @@ foreach my $line (@config_file) {
 	my $default_cert = "certs/signing_key.pem";
 
 	# Check that the logic in this script still matches the one in Kconfig
-	if (!defined($depends{"MODULE_SIG_KEY"}) ||
-	    $depends{"MODULE_SIG_KEY"} !~ /"\Q$default_cert\E"/) {
-	    print STDERR "WARNING: MODULE_SIG_KEY assertion failure, ",
-		"update needed to ", __FILE__, " line ", __LINE__, "\n";
-	    print;
-	} elsif ($orig_cert ne $default_cert && ! -f $orig_cert) {
-	    print STDERR "Module signature verification enabled but ",
-		"module signing key \"$orig_cert\" not found. Resetting ",
-		"signing key to default value.\n";
-	    print "CONFIG_MODULE_SIG_KEY=\"$default_cert\"\n";
-	} else {
-	    print;
-	}
+#	if (!defined($depends{"MODULE_SIG_KEY"}) ||
+#	    $depends{"MODULE_SIG_KEY"} !~ /"\Q$default_cert\E"/) {
+#	    print STDERR "WARNING: MODULE_SIG_KEY assertion failure, ",
+#		"update needed to ", __FILE__, " line ", __LINE__, "\n";
+#	    print;
+#	} elsif ($orig_cert ne $default_cert && ! -f $orig_cert) {
+#	    print STDERR "Module signature verification enabled but ",
+#		"module signing key \"$orig_cert\" not found. Resetting ",
+#		"signing key to default value.\n";
+#	    print "CONFIG_MODULE_SIG_KEY=\"$default_cert\"\n";
+#	} else {
+#	    print;
+#	}
+	print;
 	next;
     }
 
